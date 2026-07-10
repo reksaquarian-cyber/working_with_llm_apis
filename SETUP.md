@@ -185,19 +185,19 @@ Copy the template into a real `.env` file at the repo root.
 ### Linux / macOS
 
 ```bash
-cp 01_secure_setup/.env.example .env
+cp .env.example .env
 ```
 
 ### Windows (Command Prompt)
 
 ```cmd
-copy 01_secure_setup\.env.example .env
+copy .env.example .env
 ```
 
 ### Windows (PowerShell)
 
 ```powershell
-Copy-Item 01_secure_setup\.env.example .env
+Copy-Item .env.example .env
 ```
 
 Open `.env` in VSCode and paste your real keys. Where to get them is in [`README.md`](./README.md#get-your-keys).

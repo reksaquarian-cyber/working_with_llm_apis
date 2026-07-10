@@ -19,6 +19,7 @@ import json
 import os
 from dotenv import load_dotenv
 from huggingface_hub import InferenceClient
+from huggingface_hub.errors import BadRequestError
 from pydantic import BaseModel, ValidationError
 from typing import List
 
@@ -37,21 +38,45 @@ class BookList(BaseModel):
     books: List[Book]
 
 
+MODEL = "meta-llama/Llama-3.1-8B-Instruct"
+MESSAGES = [
+    {"role": "system", "content": "You return only valid JSON. No prose."},
+    {"role": "user", "content": "List three classic science fiction novels."},
+]
+
 # Build a JSON-schema-shaped object (Pydantic gives this to us for free).
 schema = BookList.model_json_schema()
 
-response = client.chat_completion(
-    model="meta-llama/Llama-3.1-8B-Instruct",
-    messages=[
-        {"role": "system", "content": "You return only valid JSON. No prose."},
-        {"role": "user", "content": "List three classic science fiction novels."},
-    ],
-    response_format={
-        "type": "json_schema",
-        "json_schema": {"name": "BookList", "schema": schema, "strict": True},
-    },
-    max_tokens=400,
-)
+try:
+    response = client.chat_completion(
+        model=MODEL,
+        messages=MESSAGES,
+        response_format={
+            "type": "json_schema",
+            "json_schema": {"name": "BookList", "schema": schema, "strict": True},
+        },
+        max_tokens=400,
+    )
+except BadRequestError:
+    # Fallback 1 from the module docstring: the routed provider doesn't
+    # support json_schema enforcement for this model. Ask in plain
+    # language instead and rely on Pydantic (fallback 2) to validate.
+    print("Provider doesn't support json_schema here — falling back to a plain JSON prompt.\n")
+    response = client.chat_completion(
+        model=MODEL,
+        messages=MESSAGES
+        + [
+            {
+                "role": "user",
+                "content": (
+                    "Respond with only a JSON object, no prose, no markdown "
+                    'fences: {"books": [{"title": ..., "author": ..., '
+                    '"year": ..., "genre": ...}, ...]}'
+                ),
+            }
+        ],
+        max_tokens=400,
+    )
 
 raw = response.choices[0].message.content
 print("--- Raw JSON text ---")

@@ -13,7 +13,7 @@ Quick version (if you already have Python 3.10+ and Git):
 python -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-cp 01_secure_setup/.env.example .env
+cp .env.example .env
 # Open .env and paste your real keys
 ```
 

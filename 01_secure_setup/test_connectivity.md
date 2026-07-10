@@ -73,7 +73,7 @@ history.
 **Run it:**
 
 ```bash
-cp 01_secure_setup/.env.example .env   # then paste real keys into .env
+cp .env.example .env   # then paste real keys into .env
 python 01_secure_setup/test_connectivity.py
 ```
 
