@@ -10,7 +10,15 @@ the OpenAI spec:
     { "type": "json_schema", "json_schema": { ... } }
 
 Not every model + provider combination supports json_schema enforcement.
-If yours doesn't, fall back to:
+Leave `provider` on "auto" and HF may route you to one that rejects it
+with a 400 — we saw this happen against `novita` during testing, while
+`nscale` and `deepinfra` both enforced the schema correctly. This script
+pins `provider="nscale"` below so the primary path succeeds reliably for
+this lesson.
+
+The try/except around the call is still real, load-bearing code, not a
+leftover: if you swap in a different model or provider that doesn't
+support strict json_schema, fall back to:
     1. Tell the model: "respond in valid JSON only".
     2. Parse the result and validate with Pydantic on your side.
 """
@@ -24,7 +32,9 @@ from pydantic import BaseModel, ValidationError
 from typing import List
 
 load_dotenv()
-client = InferenceClient(token=os.environ["HF_TOKEN"])
+# Pinned (not "auto") so the strict json_schema path below succeeds
+# reliably. See the module docstring for what "auto" routing can do instead.
+client = InferenceClient(token=os.environ["HF_TOKEN"], provider="nscale")
 
 
 class Book(BaseModel):
@@ -58,9 +68,10 @@ try:
         max_tokens=400,
     )
 except BadRequestError:
-    # Fallback 1 from the module docstring: the routed provider doesn't
-    # support json_schema enforcement for this model. Ask in plain
-    # language instead and rely on Pydantic (fallback 2) to validate.
+    # With provider="nscale" this should not fire — it's here for when
+    # you change MODEL or provider to a combination that doesn't support
+    # strict json_schema. Fallback 1 from the module docstring: ask in
+    # plain language instead and rely on Pydantic (fallback 2) to validate.
     print("Provider doesn't support json_schema here — falling back to a plain JSON prompt.\n")
     response = client.chat_completion(
         model=MODEL,
